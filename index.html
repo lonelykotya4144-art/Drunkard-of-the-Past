@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пьяница: Мастера Карт — Убийца Драконов</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --table-brown: #1a0f0a; }
+        body {
+            background: radial-gradient(circle at 50% 50%, rgba(60, 40, 30, 0.3) 0%, rgba(0,0,0,0.98) 100%),
+                        repeating-linear-gradient(90deg, #120a07 0px, #120a07 100px, #1a0f0a 101px, #1a0f0a 200px), #050302;
+            height: 100vh; overflow: hidden; font-family: 'Georgia', serif; color: #fef3c7; margin: 0;
+            user-select: none;
+        }
+
+        /* --- ДЕКОР --- */
+        .candle-container { position: absolute; bottom: 80px; left: 8%; z-index: 60; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .candle-body { width: 24px; height: 100px; background: linear-gradient(to right, #e9c46a, #f4a261, #e9c46a); border-radius: 4px; box-shadow: inset -2px 0 5px rgba(0,0,0,0.3); }
+        .flame-wrapper { position: absolute; top: -35px; left: 50%; transform: translateX(-50%); filter: blur(1px); animation: flicker 0.15s infinite alternate; }
+        .flame-outer { width: 16px; height: 28px; background: #ff7b00; border-radius: 50% 50% 20% 20%; box-shadow: 0 0 30px #ff7b00; opacity: 0.9; }
+        .flame-inner { position: absolute; top: 8px; left: 3px; width: 10px; height: 18px; background: #ffcc00; border-radius: 50% 50% 20% 20%; }
+        
+        .candle-light-overlay {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 85%, rgba(255, 123, 0, 0.12) 0%, transparent 50%);
+            pointer-events: none; z-index: 5; animation: light-flicker 0.2s infinite alternate;
+        }
+
+        .cup-player { position: absolute; bottom: 80px; right: 10%; width: 60px; height: 45px; background: #2d1b0d; border-radius: 0 0 20px 20px; z-index: 60; box-shadow: inset 0 -5px 10px rgba(0,0,0,0.5); }
+        .cup-handle { position: absolute; right: -12px; top: 10px; width: 15px; height: 20px; border: 5px solid #2d1b0d; border-radius: 50%; }
+        .steam-particle { position: absolute; bottom: 0; left: 50%; width: 12px; height: 12px; background: rgba(255,255,255,0.15); border-radius: 50%; filter: blur(6px); animation: steam-rise 3s infinite ease-out; opacity: 0; }
+
+        .spilled-coffee { position: absolute; top: 120px; left: 15%; width: 180px; height: 120px; background: radial-gradient(ellipse at center, rgba(30, 15, 10, 0.7) 0%, transparent 100%); filter: blur(4px); z-index: 4; transform: rotate(-15deg); }
+
+        @keyframes flicker { 0% { transform: translateX(-50%) scale(1); } 100% { transform: translateX(-52%) scale(1.1) skewX(2deg); } }
+        @keyframes light-flicker { 0% { opacity: 0.7; } 100% { opacity: 1; } }
+        @keyframes steam-rise { 0% { transform: translate(-50%, 0) scale(1); opacity: 0; } 50% { opacity: 0.3; } 100% { transform: translate(-80%, -60px) scale(3); opacity: 0; } }
+
+        /* --- КАРТЫ --- */
+        .card { width: 110px; height: 160px; border-radius: 8px; position: absolute; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; }
+        .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(0,0,0,0.5); box-shadow: 0 5px 15px rgba(0,0,0,0.6); }
+        .card-back { background: #4a3427; background-image: repeating-linear-gradient(45deg, #3d2b20 0px, #3d2b20 10px, #4a3427 10px, #4a3427 20px); }
+        .card-front { background: #fdfae5; color: #1a1c2c; transform: rotateY(180deg); }
+        
+        .bg-dragon { background: #9b2226 !important; color: white !important; }
+        .bg-falcon { background: #005f73 !important; color: white !important; }
+        .bg-queen { background: #5a189a !important; color: white !important; }
+        .bg-musician { background: #ff85a1 !important; color: #1a0f0a !important; }
+        .bg-snake { background: #1b4332 !important; color: #d8f3dc !important; }
+        .bg-joker { background: #fb8500 !important; color: white !important; }
+        
+        .falcon-active { box-shadow: 0 0 25px #00f2ff, 0 0 50px rgba(0, 242, 255, 0.3) !important; border: 2.5px solid #00f2ff !important; }
+
+        .suit-main { font-size: 2.8rem; }
+        .rank-corner { font-size: 1rem; font-weight: 900; position: absolute; }
+        
+        .pos-p2-deck { top: -200px; left: 50%; transform: translateX(-50%); }
+        .pos-p1-deck { bottom: -200px; left: 50%; transform: translateX(-50%); }
+        .on-table-p2 { top: calc(50% - 190px); left: 50%; transform: translateX(-50%) rotate(2deg); }
+        .on-table-p1 { bottom: calc(50% - 190px); left: 50%; transform: translateX(-50%) rotate(-2deg); }
+        
+        .aside-p1 { bottom: 50%; left: 8%; transform: translateY(50%) rotate(-10deg); }
+        .aside-p2 { top: 50%; left: 8%; transform: translateY(-50%) rotate(10deg); }
+
+        .action-btn { pointer-events: auto; background: #3e2723; color: #d7ccc8; padding: 10px 18px; border-radius: 4px; border: 1px solid #1a0f0a; box-shadow: 0 4px 0 #000; text-transform: uppercase; font-size: 0.75rem; transition: 0.1s; }
+        .action-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #000; }
+        .stats { background: rgba(0,0,0,0.9); padding: 5px 12px; border-radius: 4px; border: 1px solid #2d1b0d; font-size: 0.9rem; }
+        
+        #msg { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); color: #ffca28; font-size: 2.2rem; font-weight: bold; text-shadow: 2px 2px 8px #000; pointer-events: none; opacity: 0; z-index: 1000; text-align: center; width: 90%; }
+        .mute-btn { position: fixed; top: 20px; right: 20px; z-index: 500; font-size: 1.5rem; cursor: pointer; opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+<div id="mute-indicator" class="mute-btn">🔇</div>
+<div class="candle-light-overlay"></div>
+
+<div class="spilled-coffee"></div>
+
+<div class="candle-container" id="candle-trigger">
+    <div class="flame-wrapper"><div class="flame-outer"></div><div class="flame-inner"></div></div>
+    <div class="candle-body"></div>
+</div>
+
+<div class="cup-player">
+    <div class="cup-handle"></div>
+    <div class="steam-particle" style="animation-delay: 0s"></div>
+    <div class="steam-particle" style="animation-delay: 1.5s; left: 20%"></div>
+    <div class="steam-particle" style="animation-delay: 0.8s; left: 80%"></div>
+</div>
+
+<div id="msg"></div>
+
+<div class="fixed top-5 left-5 z-[300]">
+    <button id="auto-btn" class="action-btn" style="background: #1b263b;">АВТО: ВЫКЛ</button>
+</div>
+
+<div class="fixed inset-0 pointer-events-none flex flex-col justify-between p-10 z-[200]">
+    <div class="flex flex-col items-center gap-3">
+        <div class="stats text-red-400">Враг: <span id="p2-count">?</span></div>
+        <button id="p2-btn" class="action-btn">Ход врага</button>
+    </div>
+    <div class="flex flex-col items-center gap-3">
+        <button id="p1-btn" class="action-btn">Твой ход</button>
+        <div class="stats text-green-400">Ты: <span id="p1-count">?</span></div>
+    </div>
+</div>
+
+<div id="game-field" class="relative w-full h-full"></div>
+
+<script>
+    let audioCtx = null;
+    let isMuted = true;
+    let fireGain = null;
+
+    function initAudio() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        fireGain = audioCtx.createGain();
+        fireGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        fireGain.connect(audioCtx.destination);
+        const bufferSize = 2 * audioCtx.sampleRate;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = noiseBuffer; noise.loop = true;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 450;
+        noise.connect(filter); filter.connect(fireGain); noise.start();
+        setInterval(() => {
+            if (isMuted) return;
+            if (Math.random() > 0.93) {
+                const osc = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(Math.random() * 120 + 30, audioCtx.currentTime);
+                g.gain.setValueAtTime(0.015, audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.04);
+                osc.connect(g); g.connect(fireGain);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.04);
+            }
+        }, 120);
+    }
+
+    function toggleMute() {
+        if (!audioCtx) initAudio();
+        isMuted = !isMuted;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        fireGain.gain.setTargetAtTime(isMuted ? 0 : 0.08, audioCtx.currentTime, 0.4);
+        document.getElementById('mute-indicator').innerText = isMuted ? '🔇' : '🔊';
+    }
+
+    const SUITS = ['♠', '♣', '♥', '♦'];
+    const VALUES = [
+        {n:'6',v:6}, {n:'7',v:7}, {n:'8',v:8}, {n:'9',v:9}, {n:'10',v:10},
+        {n:'B',v:11}, {n:'D',v:12.5}, {n:'K',v:13}, {n:'T',v:14}
+    ];
+
+    let decks = { p1: [], p2: [] };
+    let pot = [];
+    let cardsOnTable = { p1: null, p2: null };
+    let snakesAside = []; 
+    let activeFalcon = null; 
+    let isProcessing = false;
+    let isAuto = false;
+    let zIdx = 20;
+
+    function showMessage(text, long = false) {
+        const m = document.getElementById('msg');
+        m.innerText = text; m.style.opacity = '1';
+        if (!long) setTimeout(() => m.style.opacity = '0', 1800);
+    }
+
+    function init() {
+        let full = [];
+        SUITS.forEach(s => {
+            VALUES.forEach(v => full.push({...v, s, type: 'normal'}));
+            full.push({n:'DR', v:20, s:s, type:'dragon'});
+            full.push({n:'C', v:10, s:s, type:'falcon'});
+            full.push({n:'M', v:1, s:s, type:'musician'});
+            full.push({n:'KB', v:13.5, s:s, type:'queen'});
+            full.push({n:'SN', v:0, s:s, type:'snake'});
+            full.push({n:'J', v:10.5, s:s, type:'joker'}); // Сила 10.5 чтобы бить 10, но меньше 11 (Вальта)
+        });
+        full.sort(() => Math.random() - 0.5);
+        decks.p1 = full.slice(0, Math.floor(full.length/2));
+        decks.p2 = full.slice(Math.floor(full.length/2));
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('p1-count').innerText = decks.p1.length;
+        document.getElementById('p2-count').innerText = decks.p2.length;
+    }
+
+    function createCardUI(card, player) {
+        const el = document.createElement('div');
+        el.className = `card ${player === 'p1' ? 'pos-p1-deck' : 'pos-p2-deck'}`;
+        let bg = '';
+        let color = (card.s === '♥' || card.s === '♦') ? 'text-red-600' : 'text-slate-900';
+        if(card.type === 'dragon') bg = 'bg-dragon';
+        if(card.type === 'falcon') bg = 'bg-falcon';
+        if(card.type === 'musician') bg = 'bg-musician';
+        if(card.type === 'queen') bg = 'bg-queen';
+        if(card.type === 'snake') bg = 'bg-snake';
+        if(card.type === 'joker') bg = 'bg-joker';
+
+        el.innerHTML = `
+            <div class="card-inner">
+                <div class="card-face card-back"></div>
+                <div class="card-face card-front ${bg}">
+                    <div class="rank-corner top-1 left-2 ${color}">${card.n}</div>
+                    <div class="suit-main ${color}">${card.s}</div>
+                </div>
+            </div>`;
+        document.getElementById('game-field').appendChild(el);
+        return el;
+    }
+
+    async function playCard(player) {
+        if (isProcessing || (cardsOnTable[player] && !isProcessing) || decks[player].length === 0) return;
+        if (isMuted && audioCtx === null) toggleMute();
+
+        let data, el;
+        if (activeFalcon && activeFalcon.player === player) {
+            data = activeFalcon.data; el = activeFalcon.el;
+        } else {
+            data = decks[player].shift(); el = createCardUI(data, player);
+        }
+
+        zIdx++; el.style.zIndex = zIdx;
+        
+        // --- ЛОГИКА ЗМЕИ ---
+        if (data.type === 'snake') {
+            setTimeout(() => {
+                el.classList.add('flipped');
+                el.classList.replace(player === 'p1' ? 'pos-p1-deck' : 'pos-p2-deck', player === 'p1' ? 'aside-p1' : 'aside-p2');
+                snakesAside.push({data, el});
+                showMessage("ЗМЕЯ ЖДЕТ ЖЕРТВУ...");
+                updateStats();
+                setTimeout(() => playCard(player), 700); // Бросаем следующую карту
+            }, 50);
+            return;
+        }
+
+        setTimeout(() => {
+            el.classList.add('flipped');
+            el.classList.replace(player === 'p1' ? 'pos-p1-deck' : 'pos-p2-deck', player === 'p1' ? 'on-table-p1' : 'on-table-p2');
+        }, 50);
+
+        cardsOnTable[player] = { data, el };
+        updateStats();
+
+        if (cardsOnTable.p1 && cardsOnTable.p2) resolveDuel();
+        else if (isAuto) setTimeout(() => playCard(player === 'p1' ? 'p2' : 'p1'), 600);
+    }
+
+    async function resolveDuel() {
+        isProcessing = true;
+        await new Promise(r => setTimeout(r, 1000));
+
+        // --- ЭФФЕКТ ЗМЕИ: ПОДМЕНА ---
+        if (snakesAside.length > 0) {
+            showMessage("ЗМЕИНЫЙ ОБМЕН!");
+            await new Promise(r => setTimeout(r, 400));
+            
+            // Меняем данные местными
+            let temp = cardsOnTable.p1;
+            cardsOnTable.p1 = cardsOnTable.p2;
+            cardsOnTable.p2 = temp;
+
+            // Двигаем карты визуально
+            cardsOnTable.p1.el.classList.replace('on-table-p2', 'on-table-p1');
+            cardsOnTable.p2.el.classList.replace('on-table-p1', 'on-table-p2');
+            
+            await new Promise(r => setTimeout(r, 800));
+        }
+
+        let c1 = cardsOnTable.p1.data;
+        let c2 = cardsOnTable.p2.data;
+        let winner = null;
+        let isReturn = false;
+
+        // --- ПРАВИЛА ---
+        // 1. Джокер + Музыкант = Возврат
+        if ((c1.type === 'joker' && c2.type === 'musician') || (c2.type === 'joker' && c1.type === 'musician')) {
+            showMessage("БЕЗУМИЕ И МУЗЫКА: НИЧЬЯ");
+            isReturn = true;
+        }
+        // 2. Джокер vs Туз
+        else if (c1.type === 'joker' && c2.n === 'T') { winner = 'p1'; showMessage("ДЖОКЕР ХИТРЕЕ ТУЗА"); }
+        else if (c2.type === 'joker' && c1.n === 'T') { winner = 'p2'; showMessage("ДЖОКЕР ХИТРЕЕ ТУЗА"); }
+        // 3. Музыкант vs Дама
+        else if (c1.type === 'musician' && c2.type === 'queen') { winner = 'p1'; showMessage("МУЗЫКА ПОКОРИЛА ДАМУ"); }
+        else if (c2.type === 'musician' && c1.type === 'queen') { winner = 'p2'; showMessage("МУЗЫКА ПОКОРИЛА ДАМУ"); }
+        // 4. Валет vs Дракон
+        else if (c1.n === 'B' && c2.type === 'dragon') { winner = 'p1'; showMessage("УБИЙЦА ДРАКОНОВ!"); }
+        else if (c2.n === 'B' && c1.type === 'dragon') { winner = 'p2'; showMessage("УБИЙЦА ДРАКОНОВ!"); }
+        else {
+            let v1 = activeFalcon && activeFalcon.player === 'p1' ? 12 : c1.v;
+            let v2 = activeFalcon && activeFalcon.player === 'p2' ? 12 : c2.v;
+            if (v1 > v2) winner = 'p1';
+            else if (v2 > v1) winner = 'p2';
+        }
+
+        if (isReturn) {
+            // Возвращаем владельцам (с учетом обмена, если он был)
+            const p1TargetY = 1200; const p2TargetY = -1200;
+            cardsOnTable.p1.el.style.transform = `translate(-50%, ${p1TargetY}px)`;
+            cardsOnTable.p2.el.style.transform = `translate(-50%, ${p2TargetY}px)`;
+            decks.p1.push(cardsOnTable.p1.data);
+            decks.p2.push(cardsOnTable.p2.data);
+            
+            // Змеи тоже возвращаются? Пусть уходят в колоды тех, чьи карты лежали на их стороне
+            snakesAside.forEach(s => {
+                const sY = s.el.classList.contains('aside-p1') ? 1200 : -1200;
+                s.el.style.transform = `translate(-50%, ${sY}px)`;
+                if(sY > 0) decks.p1.push(s.data); else decks.p2.push(s.data);
+            });
+            finalizeRound(null);
+        } else if (winner) {
+            const loser = winner === 'p1' ? 'p2' : 'p1';
+            let collect = [...pot, cardsOnTable.p1, cardsOnTable.p2, ...snakesAside];
+            const targetY = winner === 'p1' ? 1200 : -1200;
+
+            collect.forEach(p => {
+                p.el.style.transform = `translate(-50%, ${targetY}px) rotate(${Math.random()*30-15}deg)`;
+                p.el.style.opacity = "0";
+                decks[winner].push(p.data);
+            });
+            finalizeRound(collect);
+        } else {
+            showMessage("СПОР!");
+            pot.push(cardsOnTable.p1, cardsOnTable.p2, ...snakesAside);
+            cardsOnTable = { p1: null, p2: null };
+            snakesAside = [];
+            isProcessing = false;
+            if (isAuto) setTimeout(() => playCard('p1'), 600);
+        }
+    }
+
+    function finalizeRound(toRemove) {
+        setTimeout(() => {
+            if (toRemove) toRemove.forEach(p => p.el.remove());
+            else { cardsOnTable.p1.el.remove(); cardsOnTable.p2.el.remove(); snakesAside.forEach(s => s.el.remove()); }
+            
+            pot = []; snakesAside = [];
+            cardsOnTable = { p1: null, p2: null };
+            isProcessing = false; updateStats();
+            checkGameOver();
+            if (!isGameOver() && isAuto) playCard('p1');
+        }, 600);
+    }
+
+    function isGameOver() { return decks.p1.length === 0 || decks.p2.length === 0; }
+    function checkGameOver() {
+        if (decks.p1.length === 0) { showMessage("ТАВЕРНА ЗАБРАЛА ВСЁ...", true); setTimeout(() => location.reload(), 3000); }
+        else if (decks.p2.length === 0) { showMessage("ТЫ — МАСТЕР КАРТ!", true); setTimeout(() => location.reload(), 3000); }
+    }
+
+    document.getElementById('p1-btn').onclick = () => playCard('p1');
+    document.getElementById('p2-btn').onclick = () => playCard('p2');
+    document.getElementById('auto-btn').onclick = function() {
+        isAuto = !isAuto; this.innerText = `АВТО: ${isAuto ? 'ВКЛ' : 'ВЫКЛ'}`;
+        if (isAuto && !isProcessing) playCard('p1');
+    };
+    document.getElementById('candle-trigger').onclick = toggleMute;
+    document.getElementById('mute-indicator').onclick = toggleMute;
+    init();
+</script>
+</body>
+</html>
+
+  
