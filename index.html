@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пьяница: Мастера Карт — Охота Сокола</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --table-brown: #1a0f0a; }
+        body { background: #050302; height: 100vh; overflow: hidden; font-family: 'Georgia', serif; color: #fef3c7; margin: 0; user-select: none; }
+
+        /* ДЕТАЛИЗИРОВАННЫЙ СТОЛ */
+        .wood-table {
+            position: fixed; inset: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(80, 50, 40, 0.2) 0%, rgba(0,0,0,0.9) 100%),
+                        repeating-linear-gradient(90deg, #120a07 0px, #120a07 100px, #1a0f0a 101px, #1a0f0a 200px);
+            z-index: 0;
+        }
+        .table-crack { position: absolute; background: rgba(0,0,0,0.4); pointer-events: none; }
+        .table-stain { position: absolute; background: rgba(40, 20, 10, 0.3); border-radius: 50%; filter: blur(15px); pointer-events: none; }
+
+        /* ДЕКОР: СВЕЧА */
+        .candle-container { position: absolute; bottom: 80px; left: 8%; z-index: 60; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s; }
+        .candle-container:active { transform: scale(0.95); }
+        .candle-body { width: 24px; height: 100px; background: linear-gradient(to right, #e9c46a, #f4a261, #e9c46a); border-radius: 4px; box-shadow: inset -2px 0 5px rgba(0,0,0,0.3); }
+        .flame-wrapper { position: absolute; top: -35px; left: 50%; transform: translateX(-50%); filter: blur(1px); animation: flicker 0.15s infinite alternate; transition: opacity 0.3s; }
+        .flame-outer { width: 16px; height: 28px; background: #ff7b00; border-radius: 50% 50% 20% 20%; box-shadow: 0 0 30px #ff7b00; opacity: 0.9; }
+        .flame-inner { position: absolute; top: 8px; left: 3px; width: 10px; height: 18px; background: #ffcc00; border-radius: 50% 50% 20% 20%; }
+        
+        .candle-light-overlay {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 85%, rgba(255, 123, 0, 0.15) 0%, transparent 60%);
+            pointer-events: none; z-index: 5; animation: light-flicker 0.2s infinite alternate; transition: opacity 0.5s;
+        }
+        .darkness-overlay { position: fixed; inset: 0; background: black; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.5s; }
+
+        /* ИНТЕРАКТИВНАЯ ЧАШКА */
+        .cup-player { 
+            position: absolute; bottom: 80px; right: 10%; width: 60px; height: 45px; 
+            background: #2d1b0d; border-radius: 0 0 20px 20px; z-index: 60; 
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.5); cursor: pointer;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .cup-player.shaking { transform: scale(1.05) rotate(5deg); }
+        .cup-handle { position: absolute; right: -12px; top: 10px; width: 15px; height: 20px; border: 5px solid #2d1b0d; border-radius: 50%; }
+        .steam-container { position: absolute; top: -30px; left: 0; width: 100%; height: 30px; pointer-events: none; display: none; }
+        .steam-particle { position: absolute; bottom: 0; left: 50%; width: 12px; height: 12px; background: rgba(255,255,255,0.15); border-radius: 50%; filter: blur(6px); animation: steam-rise 3s infinite ease-out; opacity: 0; }
+
+        /* РАЗЛИТЫЙ КОФЕ ВРАГА */
+        .spilled-coffee { position: absolute; top: 100px; right: 15%; width: 70px; height: 30px; z-index: 40; display: none; transform: rotate(160deg); }
+        .cup-enemy { width: 50px; height: 35px; background: #2d1b0d; border-radius: 20px 20px 0 0; position: relative; }
+        .coffee-stain { position: absolute; top: 20px; left: 20px; width: 80px; height: 40px; background: rgba(30, 15, 5, 0.8); border-radius: 50%; filter: blur(8px); z-index: -1; }
+
+        /* АЧИВКА */
+        #achievement {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150%);
+            background: rgba(45, 27, 13, 0.95); border: 2px solid #e9c46a; color: #fef3c7;
+            padding: 15px 30px; border-radius: 8px; z-index: 3000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: flex; align-items: center; gap: 15px; transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        #achievement.show { transform: translateX(-50%) translateY(0); }
+
+        /* КОСТИ */
+        .dice-container { position: absolute; top: 120px; left: 18%; z-index: 40; display: flex; gap: 15px; opacity: 0.6; transform: rotate(-10deg); filter: sepia(0.5); }
+        .dice { width: 32px; height: 32px; background: #dcd7c9; border-radius: 5px; position: relative; box-shadow: 2px 4px 6px rgba(0,0,0,0.6); animation: dice-jitter 6s infinite; border: 1px solid rgba(0,0,0,0.2); }
+        .dice-dot { position: absolute; width: 6px; height: 6px; background: #222; border-radius: 50%; }
+        .p1 { top: 6px; left: 6px; } .p2 { top: 6px; right: 6px; } .p3 { bottom: 6px; left: 6px; } .p4 { bottom: 6px; right: 6px; } .pCenter { top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+        /* АНИМАЦИИ */
+        @keyframes flicker { 0% { transform: translateX(-50%) scale(1); } 100% { transform: translateX(-52%) scale(1.1) skewX(2deg); } }
+        @keyframes light-flicker { 0% { opacity: 0.7; } 100% { opacity: 1; } }
+        @keyframes steam-rise { 0% { transform: translate(-50%, 0) scale(1); opacity: 0; } 50% { opacity: 0.25; } 100% { transform: translate(-120%, -80px) scale(3); opacity: 0; } }
+        @keyframes dice-jitter { 0%, 94%, 100% { transform: translate(0,0) rotate(0); } 96% { transform: translate(1px, -1px) rotate(3deg); } 98% { transform: translate(-1px, 1px) rotate(-3deg); } }
+
+        /* КАРТЫ */
+        .card { width: 110px; height: 160px; border-radius: 8px; position: absolute; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; }
+        .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(0,0,0,0.5); box-shadow: 0 5px 15px rgba(0,0,0,0.6); }
+        .card-back { background: #4a3427; background-image: repeating-linear-gradient(45deg, #3d2b20 0px, #3d2b20 10px, #4a3427 10px, #4a3427 20px); }
+        .card-front { background: #fdfae5; color: #1a1c2c; transform: rotateY(180deg); }
+        
+        .bg-dragon { background: #9b2226 !important; color: white !important; }
+        .bg-falcon { background: #005f73 !important; color: white !important; }
+        .bg-musician { background: #ff85a1 !important; color: #1a0f0a !important; }
+        .bg-queen { background: #5a189a !important; color: white !important; }
+        .bg-snake { background: #1b4332 !important; color: #d8f3dc !important; }
+        .falcon-hunting { border: 4px solid #facc15 !important; box-shadow: 0 0 20px #facc15 !important; }
+
+        .rank-corner { font-size: 1rem; font-weight: 900; position: absolute; }
+        .suit-main { font-size: 2.8rem; }
+
+        /* ПОЗИЦИИ */
+        .pos-p2-deck { top: -200px; left: 50%; transform: translateX(-50%); }
+        .pos-p1-deck { bottom: -200px; left: 50%; transform: translateX(-50%); }
+        .on-table-p2 { top: calc(50% - 190px); left: 50%; transform: translateX(-50%) rotate(2deg); }
+        .on-table-p1 { bottom: calc(50% - 190px); left: 50%; transform: translateX(-50%) rotate(-2deg); }
+        .aside-p1 { bottom: 50%; left: 8%; transform: translateY(50%) rotate(-10deg); }
+        .aside-p2 { top: 50%; left: 8%; transform: translateY(-50%) rotate(10deg); }
+
+        /* ИНТЕРФЕЙС */
+        .action-btn { background: #3e2723; color: #d7ccc8; padding: 10px 18px; border-radius: 4px; border: 1px solid #1a0f0a; text-transform: uppercase; font-size: 0.75rem; cursor: pointer; transition: 0.1s; pointer-events: auto; }
+        .action-btn:active { transform: translateY(2px); }
+        .stats { background: rgba(0,0,0,0.9); padding: 5px 12px; border-radius: 4px; border: 1px solid #2d1b0d; font-size: 0.9rem; }
+        #msg { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); color: #ffca28; font-size: 2.2rem; font-weight: bold; text-shadow: 2px 2px 8px #000; pointer-events: none; opacity: 0; z-index: 1000; text-align: center; width: 90%; transition: opacity 0.3s; }
+        
+        #sound-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        #debug-log { position: fixed; bottom: 10px; left: 10px; font-size: 10px; color: #555; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div class="wood-table" id="table-bg"></div>
+<div class="darkness-overlay" id="darkness"></div>
+<div class="candle-light-overlay" id="light-fx"></div>
+
+<!-- Ачивка -->
+<div id="achievement">
+    <div class="ach-icon">☕</div>
+    <div>
+        <div class="text-xs uppercase tracking-widest text-amber-500 font-bold">Достижение получено</div>
+        <div class="text-lg font-bold">Разлитый кофе</div>
+    </div>
+</div>
+
+<!-- Начало игры -->
+<div id="sound-overlay">
+    <div class="mb-8 text-center px-4">
+        <h2 class="text-3xl font-bold mb-2 text-amber-200">Echoes of the Obsidian Hearth</h2>
+        <p class="text-amber-500/80 italic text-sm">Таверна шепчет твоё имя...</p>
+    </div>
+    <div class="flex flex-col gap-4">
+        <button id="start-btn" class="action-btn px-12 py-6 text-xl tracking-widest bg-amber-900/40">ВОЙТИ</button>
+        <button id="manual-upload-btn" class="text-xs text-amber-700 underline opacity-50 hover:opacity-100">Загрузить музыку вручную</button>
+    </div>
+    <input type="file" id="audio-file-input" class="hidden" accept="audio/*">
+</div>
+
+<!-- Свеча -->
+<div class="candle-container" id="candle-trigger">
+    <div class="flame-wrapper" id="candle-flame">
+        <div class="flame-outer"></div>
+        <div class="flame-inner"></div>
+    </div>
+    <div class="candle-body"></div>
+</div>
+
+<!-- Кости -->
+<div class="dice-container">
+    <div class="dice"><div class="dice-dot p1"></div><div class="dice-dot p2"></div><div class="dice-dot p3"></div><div class="dice-dot p4"></div></div>
+    <div class="dice" style="animation-delay: 1.2s; transform: rotate(15deg);"><div class="dice-dot pCenter"></div></div>
+</div>
+
+<!-- Секрет врага -->
+<div class="spilled-coffee" id="enemy-cup-secret">
+    <div class="coffee-stain"></div>
+    <div class="cup-enemy"></div>
+</div>
+
+<!-- Чашка игрока -->
+<div class="cup-player" id="player-cup">
+    <div class="cup-handle"></div>
+    <div class="steam-container" id="steam-box">
+        <div class="steam-particle" style="animation-delay: 0s"></div>
+        <div class="steam-particle" style="animation-delay: 1.5s; left: 20%"></div>
+        <div class="steam-particle" style="animation-delay: 0.8s; left: 80%"></div>
+    </div>
+</div>
+
+<div id="msg"></div>
+<div id="debug-log">Ожидание...</div>
+
+<div class="fixed top-5 left-5 z-[300] flex gap-2">
+    <button id="auto-btn" class="action-btn" style="background: #1b263b;">АВТО: ВЫКЛ</button>
+</div>
+
+<div class="fixed inset-0 pointer-events-none flex flex-col justify-between p-10 z-[200]">
+    <div class="flex flex-col items-center gap-3">
+        <div class="stats text-red-400">Враг: <span id="p2-count">?</span></div>
+        <button id="p2-btn" class="action-btn">Ход врага</button>
+    </div>
+    <div class="flex flex-col items-center gap-3">
+        <button id="p1-btn" class="action-btn">Твой ход</button>
+        <div class="stats text-green-400">Ты: <span id="p1-count">?</span></div>
+    </div>
+</div>
+
+<div id="game-field" class="relative w-full h-full"></div>
+
+<script>
+    const debug = (msg) => { document.getElementById('debug-log').innerText = "Статус: " + msg; };
+
+    // --- ГЕНЕРАЦИЯ СТОЛА ---
+    function generateTable() {
+        const table = document.getElementById('table-bg');
+        for(let i=0; i<15; i++){
+            const crack = document.createElement('div');
+            crack.className = 'table-crack';
+            crack.style.width = Math.random()*200 + 50 + 'px';
+            crack.style.height = '1px';
+            crack.style.left = Math.random()*100 + '%';
+            crack.style.top = Math.random()*100 + '%';
+            crack.style.transform = `rotate(${Math.random()*360}deg)`;
+            crack.style.opacity = Math.random()*0.4;
+            table.appendChild(crack);
+        }
+        for(let i=0; i<6; i++){
+            const stain = document.createElement('div');
+            stain.className = 'table-stain';
+            const size = Math.random()*150 + 50;
+            stain.style.width = size + 'px';
+            stain.style.height = size*0.7 + 'px';
+            stain.style.left = Math.random()*100 + '%';
+            stain.style.top = Math.random()*100 + '%';
+            table.appendChild(stain);
+        }
+    }
+    generateTable();
+
+    // --- ЧАШКА ---
+    let cupClicks = 0;
+    document.getElementById('player-cup').onclick = function() {
+        cupClicks++;
+        this.classList.add('shaking');
+        setTimeout(() => this.classList.remove('shaking'), 100);
+        if(cupClicks === 3) {
+            document.getElementById('steam-box').style.display = 'block';
+            debug("Пошел горячий пар...");
+        }
+        if(cupClicks === 6) {
+            document.getElementById('enemy-cup-secret').style.display = 'block';
+            document.getElementById('achievement').classList.add('show');
+            setTimeout(() => document.getElementById('achievement').classList.remove('show'), 4000);
+        }
+    };
+
+    // --- АУДИО И СВЕЧА ---
+    let audioCtx, audioBuffer, audioSource, gainNode;
+    let isPlaying = false;
+
+    async function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0.4;
+            gainNode.connect(audioCtx.destination);
+        }
+    }
+
+    async function candleEffect() {
+        const flame = document.getElementById('candle-flame');
+        const darkness = document.getElementById('darkness');
+        const light = document.getElementById('light-fx');
+
+        flame.style.opacity = '0';
+        darkness.style.opacity = '0.85';
+        light.style.opacity = '0';
+
+        // Звук затухания (белый шум)
+        const t = audioCtx.currentTime;
+        const noise = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+        const d = noise.getChannelData(0);
+        for(let i=0; i<d.length; i++) d[i] = Math.random()*2-1;
+        const src = audioCtx.createBufferSource();
+        src.buffer = noise;
+        const nGain = audioCtx.createGain();
+        nGain.gain.setValueAtTime(0.05, t);
+        nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        src.connect(nGain); nGain.connect(gainNode);
+        src.start(t);
+
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Звук щелчка (зажигание)
+        const click = audioCtx.createOscillator();
+        const cGain = audioCtx.createGain();
+        click.frequency.setValueAtTime(800, audioCtx.currentTime);
+        cGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        cGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        click.connect(cGain); cGain.connect(gainNode);
+        click.start(); click.stop(audioCtx.currentTime + 0.1);
+
+        flame.style.opacity = '1';
+        darkness.style.opacity = '0';
+        light.style.opacity = '1';
+    }
+
+    function playLoop() {
+        if (!audioBuffer) return;
+        if (audioSource) audioSource.stop();
+        audioSource = audioCtx.createBufferSource();
+        audioSource.buffer = audioBuffer;
+        audioSource.connect(gainNode);
+        audioSource.onended = async () => {
+            if (isPlaying) {
+                await candleEffect();
+                playLoop();
+            }
+        };
+        audioSource.start(0);
+        isPlaying = true;
+        document.getElementById('sound-overlay').style.display = 'none';
+    }
+
+    function stopLoop() {
+        if (audioSource) {
+            audioSource.onended = null;
+            audioSource.stop();
+            audioSource = null;
+        }
+        isPlaying = false;
+        document.getElementById('candle-flame').style.opacity = '0.2';
+        document.getElementById('darkness').style.opacity = '0.5';
+    }
+
+    document.getElementById('candle-trigger').onclick = async () => {
+        await initAudio();
+        if (isPlaying) stopLoop();
+        else playLoop();
+    };
+
+    document.getElementById('start-btn').onclick = async () => {
+        await initAudio();
+        fetch('echoes_of_the_obsidian_hearth.mp3').then(r => r.arrayBuffer()).then(d => audioCtx.decodeAudioData(d)).then(b => {
+            audioBuffer = b; playLoop();
+        }).catch(() => debug("Загрузите музыку вручную"));
+    };
+
+    document.getElementById('manual-upload-btn').onclick = () => document.getElementById('audio-file-input').click();
+    document.getElementById('audio-file-input').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            await initAudio();
+            const ab = await file.arrayBuffer();
+            audioBuffer = await audioCtx.decodeAudioData(ab);
+            playLoop();
+        }
+    };
+
+    // --- ЛОГИКА ИГРЫ ---
+    const SUITS = ['♠','♣','♥','♦'];
+    const VALUES = [{n:'6',v:6},{n:'7',v:7},{n:'8',v:8},{n:'9',v:9},{n:'10',v:10},{n:'B',v:11},{n:'D',v:12},{n:'K',v:13},{n:'T',v:14}];
+    let decks = {p1:[], p2:[]}, pot = [], cardsOnTable = {p1:null, p2:null}, snakesAside = [];
+    let isProcessing = false, isAuto = false, zIdx = 20, huntingFalcons = {p1:false, p2:false};
+
+    function showMessage(text) {
+        const m = document.getElementById('msg');
+        m.innerText = text; m.style.opacity = '1';
+        setTimeout(() => m.style.opacity = '0', 1800);
+    }
+
+    function init() {
+        let full = [];
+        SUITS.forEach(s => {
+            VALUES.forEach(v => full.push({...v, s, type:'normal'}));
+            full.push({n:'DR', v:15, s, type:'dragon'});
+            full.push({n:'C', v:10.5, s, type:'falcon'});
+            full.push({n:'M', v:1, s, type:'musician'});
+            full.push({n:'KB', v:13.5, s, type:'queen'});
+            full.push({n:'SN', v:0, s, type:'snake'});
+        });
+        full.sort(() => Math.random() - 0.5);
+        decks.p1 = full.slice(0, 26);
+        decks.p2 = full.slice(26);
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('p1-count').innerText = decks.p1.length;
+        document.getElementById('p2-count').innerText = decks.p2.length;
+    }
+
+    async function playCard(player) {
+        if (isProcessing || (cardsOnTable[player] && !isProcessing) || decks[player].length === 0) return;
+        let card = decks[player].shift();
+        let el = document.createElement('div');
+        el.className = `card ${player === 'p1' ? 'pos-p1-deck' : 'pos-p2-deck'}`;
+        let bg = card.type !== 'normal' ? `bg-${card.type}` : '';
+        let color = (card.s === '♥' || card.s === '♦') ? 'text-red-600' : 'text-slate-900';
+        let hunterClass = (card.type === 'falcon' && huntingFalcons[player]) ? 'falcon-hunting' : '';
+
+        el.innerHTML = `<div class="card-inner"><div class="card-face card-back"></div><div class="card-face card-front ${bg} ${hunterClass}"><div class="rank-corner top-1 left-2 ${color}">${card.n}</div><div class="suit-main ${color}">${card.s}</div></div></div>`;
+        document.getElementById('game-field').appendChild(el);
+        zIdx++; el.style.zIndex = zIdx;
+        updateStats();
+
+        if (card.type === 'snake') {
+            setTimeout(() => {
+                el.classList.add('flipped');
+                el.classList.replace(player === 'p1' ? 'pos-p1-deck' : 'pos-p2-deck', player === 'p1' ? 'aside-p1' : 'aside-p2');
+                snakesAside.push({data:card, el, player});
+                showMessage("ЗМЕЯ ГОТОВИТ ЗАПАДНЮ...");
+                setTimeout(() => playCard(player), 700);
+            }, 50);
+            return;
+        }
+
+        setTimeout(() => {
+            el.classList.add('flipped');
+            el.classList.replace(player === 'p1' ? 'pos-p1-deck' : 'pos-p2-deck', player === 'p1' ? 'on-table-p1' : 'on-table-p2');
+            cardsOnTable[player] = { data: card, el };
+            if (cardsOnTable.p1 && cardsOnTable.p2) resolveDuel();
+            else if (isAuto) setTimeout(() => playCard(player === 'p1' ? 'p2' : 'p1'), 600);
+        }, 50);
+    }
+
+    async function resolveDuel() {
+        isProcessing = true;
+        await new Promise(r => setTimeout(r, 1000));
+
+        if (snakesAside.length > 0) {
+            showMessage("ЗМЕИНЫЙ ОБМЕН!");
+            let temp = cardsOnTable.p1;
+            cardsOnTable.p1 = cardsOnTable.p2;
+            cardsOnTable.p2 = temp;
+            cardsOnTable.p1.el.classList.replace('on-table-p2', 'on-table-p1');
+            cardsOnTable.p2.el.classList.replace('on-table-p1', 'on-table-p2');
+            await new Promise(r => setTimeout(r, 800));
+        }
+
+        let c1 = cardsOnTable.p1.data, c2 = cardsOnTable.p2.data;
+        let win = null;
+
+        if (c1.v === c2.v && c1.type === c2.type) win = null;
+        else if (c1.type === 'musician' && c2.n === 'D') win = 'p1';
+        else if (c2.type === 'musician' && c1.n === 'D') win = 'p2';
+        else if (c1.type === 'musician') win = 'p2';
+        else if (c2.type === 'musician') win = 'p1';
+        else if (c1.n === 'B' && c2.type === 'dragon') win = 'p1';
+        else if (c2.n === 'B' && c1.type === 'dragon') win = 'p2';
+        else if (c1.type === 'falcon' && huntingFalcons.p1 && c2.n === 'K') win = 'p1';
+        else if (c2.type === 'falcon' && huntingFalcons.p2 && c1.n === 'K') win = 'p2';
+        else if (c1.v > c2.v) win = 'p1';
+        else if (c1.v < c2.v) win = 'p2';
+
+        if (win) {
+            let wCard = cardsOnTable[win].data, lCard = cardsOnTable[win==='p1'?'p2':'p1'].data;
+            if (wCard.type === 'falcon' && lCard.n === 'B') { huntingFalcons[win] = true; showMessage("СОКОЛ ВЫШЕЛ НА ОХОТУ!"); }
+            else if (wCard.type === 'falcon' && huntingFalcons[win] && lCard.n === 'K') { huntingFalcons[win] = false; showMessage("СОКОЛ СЫТ"); }
+            
+            let collect = [...pot, cardsOnTable.p1, cardsOnTable.p2, ...snakesAside];
+            collect.forEach(p => {
+                p.el.style.transform = `translate(-50%, ${win === 'p1' ? 1200 : -1200}px) rotate(${Math.random()*40-20}deg)`;
+                p.el.style.opacity = "0";
+                decks[win].push(p.data);
+            });
+            setTimeout(() => {
+                collect.forEach(p => p.el.remove());
+                pot = []; snakesAside = []; cardsOnTable = {p1:null, p2:null};
+                isProcessing = false; updateStats();
+                if (decks.p1.length === 0 || decks.p2.length === 0) location.reload();
+                else if (isAuto) playCard('p1');
+            }, 600);
+        } else {
+            showMessage("СПОР!");
+            pot.push(cardsOnTable.p1, cardsOnTable.p2, ...snakesAside);
+            cardsOnTable = {p1:null, p2:null}; snakesAside = [];
+            isProcessing = false; if (isAuto) setTimeout(() => playCard('p1'), 600);
+        }
+    }
+
+    document.getElementById('p1-btn').onclick = () => playCard('p1');
+    document.getElementById('p2-btn').onclick = () => playCard('p2');
+    document.getElementById('auto-btn').onclick = function() {
+        isAuto = !isAuto; this.innerText = `АВТО: ${isAuto ? 'ВКЛ' : 'ВЫКЛ'}`;
+        if (isAuto && !isProcessing) playCard('p1');
+    };
+
+    init();
+</script>
+</body>
+</html>
